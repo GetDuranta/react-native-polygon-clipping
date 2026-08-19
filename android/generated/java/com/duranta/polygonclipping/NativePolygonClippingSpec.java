@@ -40,4 +40,8 @@ public abstract class NativePolygonClippingSpec extends ReactContextBaseJavaModu
   @ReactMethod(isBlockingSynchronousMethod = true)
   @DoNotStrip
   public abstract WritableArray splitEach(ReadableArray subjects, ReadableArray clips);
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  @DoNotStrip
+  public abstract WritableArray splitMerged(ReadableArray subjects, ReadableArray clips);
 }

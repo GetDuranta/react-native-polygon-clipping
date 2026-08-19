@@ -34,6 +34,10 @@ namespace facebook::react {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, ArrayKind, "splitEach", @selector(splitEach:clips:), args, count);
     }
 
+    static facebook::jsi::Value __hostFunction_NativePolygonClippingSpecJSI_splitMerged(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, ArrayKind, "splitMerged", @selector(splitMerged:clips:), args, count);
+    }
+
   NativePolygonClippingSpecJSI::NativePolygonClippingSpecJSI(const ObjCTurboModule::InitParams &params)
     : ObjCTurboModule(params) {
       
@@ -41,6 +45,9 @@ namespace facebook::react {
         
         
         methodMap_["splitEach"] = MethodMetadata {2, __hostFunction_NativePolygonClippingSpecJSI_splitEach};
+        
+        
+        methodMap_["splitMerged"] = MethodMetadata {2, __hostFunction_NativePolygonClippingSpecJSI_splitMerged};
         
   }
 } // namespace facebook::react

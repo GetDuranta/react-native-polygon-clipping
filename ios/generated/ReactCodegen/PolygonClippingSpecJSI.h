@@ -24,6 +24,7 @@ protected:
   NativePolygonClippingCxxSpec(std::shared_ptr<CallInvoker> jsInvoker) : TurboModule(std::string{NativePolygonClippingCxxSpec::kModuleName}, jsInvoker) {
     methodMap_["clip"] = MethodMetadata {.argCount = 2, .invoker = __clip};
     methodMap_["splitEach"] = MethodMetadata {.argCount = 2, .invoker = __splitEach};
+    methodMap_["splitMerged"] = MethodMetadata {.argCount = 2, .invoker = __splitMerged};
   }
   
 private:
@@ -41,6 +42,15 @@ private:
       bridging::getParameterCount(&T::splitEach) == 3,
       "Expected splitEach(...) to have 3 parameters");
     return bridging::callFromJs<jsi::Array>(rt, &T::splitEach,  static_cast<NativePolygonClippingCxxSpec*>(&turboModule)->jsInvoker_, static_cast<T*>(&turboModule),
+      count <= 0 ? throw jsi::JSError(rt, "Expected argument in position 0 to be passed") : args[0].asObject(rt).asArray(rt),
+      count <= 1 ? throw jsi::JSError(rt, "Expected argument in position 1 to be passed") : args[1].asObject(rt).asArray(rt));
+  }
+
+  static jsi::Value __splitMerged(jsi::Runtime &rt, TurboModule &turboModule, const jsi::Value* args, size_t count) {
+    static_assert(
+      bridging::getParameterCount(&T::splitMerged) == 3,
+      "Expected splitMerged(...) to have 3 parameters");
+    return bridging::callFromJs<jsi::Array>(rt, &T::splitMerged,  static_cast<NativePolygonClippingCxxSpec*>(&turboModule)->jsInvoker_, static_cast<T*>(&turboModule),
       count <= 0 ? throw jsi::JSError(rt, "Expected argument in position 0 to be passed") : args[0].asObject(rt).asArray(rt),
       count <= 1 ? throw jsi::JSError(rt, "Expected argument in position 1 to be passed") : args[1].asObject(rt).asArray(rt));
   }

@@ -1572,4 +1572,12 @@ std::vector<SplitResult> splitEach(const PackedMultiPolygon& subjects, const Pac
   return results;
 }
 
+SplitMergedResult splitMerged(const PackedMultiPolygon& subjects, const PackedMultiPolygon& clips,
+                              const ClipOptions& options) {
+  SplitMergedResult r;
+  r.inside = clip(OpType::Intersection, subjects, {clips}, options);
+  r.outside = clip(OpType::Difference, subjects, {clips}, options);
+  return r;
+}
+
 } // namespace polyclip

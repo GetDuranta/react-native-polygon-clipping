@@ -77,4 +77,22 @@ struct SplitResult {
 std::vector<SplitResult> splitEach(const PackedMultiPolygon& subjects, const PackedMultiPolygon& clips,
                                    const ClipOptions& options = {});
 
+struct SplitMergedResult {
+  /* union(subjects) minus union(clips) */
+  PackedMultiPolygon outside;
+  /* union(subjects) intersected with union(clips) */
+  PackedMultiPolygon inside;
+};
+
+/* Merged bulk operation: treats the subjects as one multipolygon and the
+ * clips as another and computes both the difference and the intersection.
+ * Two sweeps total regardless of polygon counts — much faster than
+ * splitEach for many subjects/clips — but coarser semantics: results are
+ * not attributed to individual subjects, overlapping or touching subjects
+ * merge in the output, output coordinates are normalized even for
+ * subjects no clip touches, and a topology error anywhere fails the whole
+ * operation (callers can fall back to splitEach). */
+SplitMergedResult splitMerged(const PackedMultiPolygon& subjects, const PackedMultiPolygon& clips,
+                              const ClipOptions& options = {});
+
 } // namespace polyclip

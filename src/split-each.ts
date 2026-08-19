@@ -26,6 +26,26 @@ export interface DifferenceEachResult {
   failures: number;
 }
 
+export interface SplitMergedResult {
+  /* union(subjects) minus union(clips) */
+  outside: PackedCoords[];
+  /* union(subjects) intersected with union(clips) */
+  inside: PackedCoords[];
+}
+
+/* Merged bulk operation, mirroring cpp/core/polyclip.cpp splitMerged():
+ * two sweeps total regardless of polygon counts, but coarser semantics
+ * than splitEachJs — results are not attributed to individual subjects,
+ * overlapping or touching subjects merge in the output, coordinates are
+ * normalized even for untouched subjects, and any topology error fails
+ * the whole operation. */
+export function splitMergedJs(subjects: PackedCoords[], clips: PackedCoords[]): SplitMergedResult {
+  return {
+    inside: intersectionPacked(subjects, clips),
+    outside: differencePacked(subjects, clips),
+  };
+}
+
 export function splitEachJs(subjects: PackedCoords[], clips: PackedCoords[]): SplitResult[] {
   const validClips = clips.filter((c) => c.ringLengths.length > 0);
 

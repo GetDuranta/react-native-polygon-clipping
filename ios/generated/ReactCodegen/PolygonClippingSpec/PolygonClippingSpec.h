@@ -39,6 +39,8 @@ NS_ASSUME_NONNULL_BEGIN
                      geometry:(NSArray *)geometry;
 - (NSArray<NSNumber *> *)splitEach:(NSArray *)subjects
                              clips:(NSArray *)clips;
+- (NSArray<NSNumber *> *)splitMerged:(NSArray *)subjects
+                               clips:(NSArray *)clips;
 
 @end
 

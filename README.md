@@ -108,6 +108,25 @@ Intersection failures propagate as exceptions; difference failures are
 counted per subject and that clip step is skipped, so one degenerate
 geometry doesn't discard the rest of the batch.
 
+When per-subject attribution isn't needed, `splitMergedPacked` is much
+faster: it treats the subjects as one multipolygon and the clips as
+another, so the sweep-line structures are built once per operation (two
+sweeps total) instead of per subject×clip pair:
+
+```ts
+import { splitMergedPacked } from "@duranta-public/react-native-polygon-clipping";
+
+const { outside, inside } = splitMergedPacked(subjects, clips);
+// outside = union(subjects) − union(clips)
+// inside  = union(subjects) ∩ union(clips)
+```
+
+Trade-offs vs `splitEachPacked`: results aren't attributed to individual
+subjects, overlapping/touching subjects merge in the output, coordinates
+are normalized even for subjects no clip touches, and a topology error
+anywhere fails the whole operation (catch it and fall back to
+`splitEachPacked` when robustness matters).
+
 Notes:
 
 - Input rings may be open or closed; output rings are always closed

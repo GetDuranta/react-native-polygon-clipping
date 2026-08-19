@@ -35,6 +35,15 @@ export interface Spec extends TurboModule {
    * See the polyclip::splitEach C++ doc for the exact semantics.
    */
   readonly splitEach: (subjects: ReadonlyArray<number>, clips: ReadonlyArray<number>) => number[];
+
+  /**
+   * Merged bulk operation: treats the subjects as one multipolygon and the
+   * clips as another and computes both the difference and the intersection
+   * in one call. Inputs are each a single `multiPoly`; the return value is
+   * two `multiPoly` blocks back to back: outside (difference) then inside
+   * (intersection).
+   */
+  readonly splitMerged: (subjects: ReadonlyArray<number>, clips: ReadonlyArray<number>) => number[];
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>("PolygonClipping");

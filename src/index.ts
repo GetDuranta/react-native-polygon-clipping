@@ -5,7 +5,7 @@
  * 'react-native' outside of React Native. */
 
 export type { Pair, Ring, Polygon, MultiPolygon, Geom, PackedCoords } from "./types";
-export type { SplitResult, DifferenceEachResult } from "./split-each";
+export type { SplitResult, DifferenceEachResult, SplitMergedResult } from "./split-each";
 
 export {
   union,
@@ -18,6 +18,7 @@ export {
   differencePacked,
   splitEachPacked,
   differenceEachPacked,
+  splitMergedPacked,
   isNativePolygonClippingAvailable,
   default,
 } from "./implementation";

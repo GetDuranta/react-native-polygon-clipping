@@ -4,8 +4,8 @@
  * native module is unavailable. Both files must export the same API. */
 
 import { union, intersection, xor, difference, intersectionPacked, differencePacked, unionPacked, xorPacked } from "./polygon-clipping";
-import { splitEachJs } from "./split-each";
-import type { DifferenceEachResult, SplitResult } from "./split-each";
+import { splitEachJs, splitMergedJs } from "./split-each";
+import type { DifferenceEachResult, SplitMergedResult, SplitResult } from "./split-each";
 import type { PackedCoords } from "./types";
 
 export { union, intersection, xor, difference, intersectionPacked, differencePacked, unionPacked, xorPacked };
@@ -20,6 +20,10 @@ export function differenceEachPacked(subjects: PackedCoords[], clips: PackedCoor
     touched,
     failures,
   }));
+}
+
+export function splitMergedPacked(subjects: PackedCoords[], clips: PackedCoords[]): SplitMergedResult {
+  return splitMergedJs(subjects, clips);
 }
 
 export function isNativePolygonClippingAvailable(): boolean {

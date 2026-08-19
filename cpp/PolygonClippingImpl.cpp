@@ -171,4 +171,28 @@ std::vector<double> PolygonClippingImpl::splitEach(jsi::Runtime& rt, std::vector
   }
 }
 
+std::vector<double> PolygonClippingImpl::splitMerged(jsi::Runtime& rt, std::vector<double> subjects,
+                                                     std::vector<double> clips) {
+  try {
+    Reader subjectReader(subjects);
+    const polyclip::PackedMultiPolygon subjectPolys = readMultiPoly(subjectReader);
+    if (!subjectReader.done()) throw std::invalid_argument(kBadEncoding);
+    Reader clipReader(clips);
+    const polyclip::PackedMultiPolygon clipPolys = readMultiPoly(clipReader);
+    if (!clipReader.done()) throw std::invalid_argument(kBadEncoding);
+
+    const polyclip::SplitMergedResult result = polyclip::splitMerged(subjectPolys, clipPolys);
+
+    std::vector<double> out;
+    out.reserve(encodedMultiPolySize(result.outside) + encodedMultiPolySize(result.inside));
+    appendMultiPoly(out, result.outside);
+    appendMultiPoly(out, result.inside);
+    return out;
+  } catch (const jsi::JSError&) {
+    throw;
+  } catch (const std::exception& e) {
+    throw jsi::JSError(rt, e.what());
+  }
+}
+
 } // namespace facebook::react

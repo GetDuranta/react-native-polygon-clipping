@@ -6,8 +6,8 @@
 import type { Spec } from "./NativePolygonClipping";
 import type { Geom, MultiPolygon, PackedCoords, Polygon, Ring } from "./types";
 import * as js from "./polygon-clipping";
-import { splitEachJs } from "./split-each";
-import type { DifferenceEachResult, SplitResult } from "./split-each";
+import { splitEachJs, splitMergedJs } from "./split-each";
+import type { DifferenceEachResult, SplitMergedResult, SplitResult } from "./split-each";
 
 const OP_UNION = 0;
 const OP_INTERSECTION = 1;
@@ -140,6 +140,16 @@ export function differenceEachPacked(subjects: PackedCoords[], clips: PackedCoor
     touched,
     failures,
   }));
+}
+
+export function splitMergedPacked(subjects: PackedCoords[], clips: PackedCoords[]): SplitMergedResult {
+  const module = native();
+  if (module === null) return splitMergedJs(subjects, clips);
+  const data = module.splitMerged(encodeMultiPoly(subjects), encodeMultiPoly(clips));
+  const cursor = { pos: 0 };
+  const outside = decodeMultiPoly(data, cursor);
+  const inside = decodeMultiPoly(data, cursor);
+  return { outside, inside };
 }
 
 // ---- nested-geometry API ----

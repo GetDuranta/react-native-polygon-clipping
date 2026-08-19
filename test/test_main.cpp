@@ -152,6 +152,25 @@ void unitTests() {
     check(!res[1].touched && res[1].outside.empty() && res[1].inside.empty(),
           "splitEach: degenerate subject empty result");
   }
+  // splitMerged: one difference + one intersection over merged operands
+  {
+    auto r = polyclip::splitMerged({squarePoly(0, 0, 2), squarePoly(10, 10, 1)},
+                                   {squarePoly(1, 1, 2), squarePoly(-5, -5, 1)}, opts);
+    check(std::fabs(multiArea(r.outside) - 4.0) < 1e-9, "splitMerged: outside area 4 (3 + untouched 1)");
+    check(std::fabs(multiArea(r.inside) - 1.0) < 1e-9, "splitMerged: inside area 1");
+  }
+  // splitMerged: overlapping clips don't double-count inside
+  {
+    auto r = polyclip::splitMerged({squarePoly(0, 0, 2)}, {squarePoly(0, 0, 1), squarePoly(0.5, 0.5, 1)}, opts);
+    check(std::fabs(multiArea(r.inside) - 1.75) < 1e-9, "splitMerged: overlapping clips inside area 1.75");
+    check(std::fabs(multiArea(r.outside) - 2.25) < 1e-9, "splitMerged: outside area 2.25");
+  }
+  // splitMerged: empty clips -> inside empty, outside = normalized subjects
+  {
+    auto r = polyclip::splitMerged({squarePoly(0, 0, 2)}, {}, opts);
+    check(r.inside.empty(), "splitMerged: empty clips inside empty");
+    check(std::fabs(multiArea(r.outside) - 4.0) < 1e-9, "splitMerged: empty clips outside area 4");
+  }
   std::printf("unit tests: %d checks, %d failures\n", checks, failures);
 }
 
