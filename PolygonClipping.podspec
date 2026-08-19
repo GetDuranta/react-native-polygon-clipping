@@ -17,9 +17,11 @@ Pod::Spec.new do |s|
   s.private_header_files = "ios/**/*.h"
 
   # The clipping core relies on exact IEEE-754 double semantics; keep FMA
-  # contraction off.
+  # contraction off. The core is hot-path geometry code, so it is compiled
+  # optimized even in Debug configurations (Release is untouched).
   s.pod_target_xcconfig = {
-    "OTHER_CPLUSPLUSFLAGS" => "$(inherited) -ffp-contract=off"
+    "OTHER_CPLUSPLUSFLAGS" => "$(inherited) -ffp-contract=off",
+    "GCC_OPTIMIZATION_LEVEL[config=Debug]" => "2"
   }
 
   install_modules_dependencies(s)

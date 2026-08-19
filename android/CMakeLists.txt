@@ -22,7 +22,11 @@ set_target_properties(
 # The core relies on exact IEEE-754 double semantics (error-free
 # transformations in orient2d, bit-compatibility with the JS reference);
 # FMA contraction must stay off.
-target_compile_options(polygonclipping PRIVATE -ffp-contract=off)
+#
+# The clipping core is hot-path geometry code; keep it optimized even in
+# Debug builds (the trailing -O2 overrides the build type's -O0). Release
+# flags are left untouched.
+target_compile_options(polygonclipping PRIVATE -ffp-contract=off $<$<CONFIG:Debug>:-O2>)
 
 target_include_directories(
     polygonclipping
