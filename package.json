@@ -1,5 +1,5 @@
 {
-  "name": "@duranta/react-native-polygon-clipping",
+  "name": "@duranta-public/react-native-polygon-clipping",
   "version": "0.1.0",
   "description": "Fast polygon clipping (union, intersection, difference, xor) for React Native as a pure C++ Turbo Module",
   "main": "lib/commonjs/index.js",
@@ -39,11 +39,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/getduranta/react-native-polygon-clipping.git"
+    "url": "git+https://github.com/GetDuranta/react-native-polygon-clipping.git"
   },
   "author": "Duranta <alex@getduranta.com>",
   "license": "BSD-1-Clause",
-  "homepage": "https://github.com/getduranta/react-native-polygon-clipping#readme",
+  "homepage": "https://github.com/GetDuranta/react-native-polygon-clipping#readme",
   "publishConfig": {
     "access": "public"
   },

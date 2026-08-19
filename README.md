@@ -1,4 +1,4 @@
-# @duranta/react-native-polygon-clipping
+# @duranta-public/react-native-polygon-clipping
 
 Fast boolean operations on polygons — union, intersection, difference, xor —
 for React Native, implemented as a **pure C++ Turbo Module** (no Java/Kotlin,
@@ -34,7 +34,7 @@ interpreted, expect one to two orders of magnitude.
 ## Installation
 
 ```sh
-npm install @duranta/react-native-polygon-clipping
+npm install @duranta-public/react-native-polygon-clipping
 cd ios && pod install
 ```
 
@@ -48,7 +48,7 @@ so no extra codegen step runs in your app.
 GeoJSON-style nested geometry (drop-in for the `polygon-clipping` package):
 
 ```ts
-import { union, intersection, difference, xor } from "@duranta/react-native-polygon-clipping";
+import { union, intersection, difference, xor } from "@duranta-public/react-native-polygon-clipping";
 
 const subject = [[[0, 0], [2, 0], [2, 2], [0, 2], [0, 0]]];   // Polygon
 const clip = [[[1, 1], [3, 1], [3, 3], [1, 3], [1, 1]]];
@@ -65,7 +65,7 @@ import {
   unionPacked,
   xorPacked,
   type PackedCoords,
-} from "@duranta/react-native-polygon-clipping";
+} from "@duranta-public/react-native-polygon-clipping";
 
 const square: PackedCoords = {
   ringLengths: [5], // coordinate pairs per ring; first ring is the exterior
