@@ -81,6 +81,33 @@ const square: PackedCoords = {
 const result: PackedCoords[] = differencePacked([square], [clip]);
 ```
 
+Bulk splitting — clips many subject polygons against a set of clip polygons
+in a single native call (one JS↔native crossing instead of two per
+subject×clip pair):
+
+```ts
+import { splitEachPacked, differenceEachPacked } from "@duranta-public/react-native-polygon-clipping";
+
+// Per subject polygon, iterates the clips in order: intersects the current
+// remainder with the clip and, when non-empty, subtracts the intersection.
+const results = splitEachPacked(subjects, clips);
+// results[i] = {
+//   outside:  PackedCoords[]  pieces of subjects[i] outside all clips
+//                             (verbatim copy of the input when untouched),
+//   inside:   PackedCoords[]  intersection pieces carved out, in clip order,
+//   touched:  boolean         false = no clip modified this subject,
+//   failures: number          clip steps skipped due to topology errors
+//                             (their intersections remain in `inside`),
+// }
+
+// Same loop without collecting the inside pieces in the result:
+const diffs = differenceEachPacked(subjects, clips); // { outside, touched, failures }[]
+```
+
+Intersection failures propagate as exceptions; difference failures are
+counted per subject and that clip step is skipped, so one degenerate
+geometry doesn't discard the rest of the batch.
+
 Notes:
 
 - Input rings may be open or closed; output rings are always closed

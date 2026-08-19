@@ -12,6 +12,8 @@ class PolygonClippingImpl : public NativePolygonClippingCxxSpec<PolygonClippingI
   PolygonClippingImpl(std::shared_ptr<CallInvoker> jsInvoker);
 
   std::vector<double> clip(jsi::Runtime& rt, double op, std::vector<double> geometry);
+
+  std::vector<double> splitEach(jsi::Runtime& rt, std::vector<double> subjects, std::vector<double> clips);
 };
 
 } // namespace facebook::react

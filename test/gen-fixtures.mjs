@@ -126,6 +126,66 @@ function addCase(name, op, subject, clips) {
   lines.push("END");
 }
 
+/* Reference implementation of the splitEach bulk op; must mirror
+ * src/split-each.ts (and cpp/core/polyclip.cpp splitEach) exactly. */
+function splitEachJsRef(subjects, clips) {
+  const validClips = clips.filter((c) => c.ringLengths.length > 0);
+  const results = [];
+  for (const subject of subjects) {
+    const r = { outside: [], inside: [], touched: false, failures: 0 };
+    results.push(r);
+    if (subject.ringLengths.length === 0) continue;
+    let current = [subject];
+    for (const clip of validClips) {
+      const inter = intersectionPacked(current, [clip]);
+      if (inter.length === 0) continue;
+      r.inside.push(...inter);
+      let diff;
+      try {
+        diff = differencePacked(current, inter);
+      } catch {
+        r.failures++;
+        continue;
+      }
+      r.touched = true;
+      if (diff.length === 0) {
+        current = [];
+        break;
+      }
+      current = diff;
+    }
+    r.outside = current;
+  }
+  return results;
+}
+
+function addSplitCase(name, subjects, clips) {
+  caseCount++;
+  lines.push(`CASE ${name.replace(/\s+/g, "_")}`);
+  lines.push("OP split_each");
+  writeMultiPoly("SUBJECT", subjects);
+  lines.push("CLIPS 1");
+  writeMultiPoly("CLIP", clips);
+  let results = null;
+  let error = null;
+  try {
+    results = splitEachJsRef(subjects, clips);
+  } catch (e) {
+    error = e;
+  }
+  if (error !== null) {
+    lines.push("EXPECT_ERROR");
+  } else {
+    lines.push(`EXPECT_SPLIT ${results.length}`);
+    for (const r of results) {
+      lines.push(`SUBJ ${r.touched ? 1 : 0} ${r.failures}`);
+      writeMultiPoly("OUTSIDE", r.outside);
+      writeMultiPoly("INSIDE", r.inside);
+    }
+  }
+  lines.push("END");
+}
+
 // xor isn't exported in packed form; go through the nested-geometry API.
 function packedToNested(mp) {
   return mp.map((poly) => {
@@ -323,6 +383,61 @@ for (let i = 0; i < 8; i++) {
       if (next.length === 0) break;
       current = next;
     }
+  }
+}
+
+// ---- splitEach bulk-op cases ----
+
+// fixed: mixed touched / untouched / consumed / degenerate subjects
+addSplitCase(
+  "split_basic",
+  [square(0, 0, 2), square(10, 10, 1), square(4.25, 0.25, 0.5), squareWithHole(6, 6, 3, 1)],
+  [square(1, 1, 2), square(4, 0, 1), square(6.5, 6.5, 2)],
+);
+addSplitCase("split_no_clips", [square(0, 0, 1)], []);
+addSplitCase("split_empty_subjects", [], [square(0, 0, 1)]);
+addSplitCase(
+  "split_degenerate_entries",
+  [square(0, 0, 2), { ringLengths: [], packedCoordinates: [] }],
+  [{ ringLengths: [], packedCoordinates: [] }, square(1, 1, 2)],
+);
+addSplitCase(
+  "split_fully_consumed",
+  [square(1, 1, 1), square(5, 5, 1)],
+  [square(0, 0, 3), square(4.5, 4.5, 0.75)],
+);
+addSplitCase(
+  "split_shared_edges",
+  [square(0, 0, 1), square(1, 0, 1), square(2, 0, 1)],
+  [rect(0.5, -0.5, 2, 2)],
+);
+
+// random: mosaics of subjects vs clip sets across coordinate regimes
+for (const [rname, cx, cy, scale] of regimes) {
+  for (let i = 0; i < 6; i++) {
+    const subjects = [];
+    const clips = [];
+    const n = 2 + Math.floor(rand() * 4);
+    const m = 1 + Math.floor(rand() * 4);
+    for (let s = 0; s < n; s++) {
+      subjects.push(
+        jitteredCircle(rand, cx + (rand() - 0.5) * scale, cy + (rand() - 0.5) * scale, scale * (0.1 + rand() * 0.3), 8 + Math.floor(rand() * 12), 0.3),
+      );
+    }
+    for (let c = 0; c < m; c++) {
+      clips.push(
+        jitteredCircle(rand, cx + (rand() - 0.5) * scale, cy + (rand() - 0.5) * scale, scale * (0.1 + rand() * 0.4), 8 + Math.floor(rand() * 12), 0.3),
+      );
+    }
+    addSplitCase(`split_rand_${rname}_${i}`, subjects, clips);
+  }
+  for (let i = 0; i < 4; i++) {
+    const subjects = [squareWithHole(cx, cy, scale, scale * (0.1 + rand() * 0.3))];
+    const clips = [
+      star(rand, cx + scale * 0.5, cy + scale * 0.5, scale * 0.5, scale * 0.2, 5 + Math.floor(rand() * 5), 0.2),
+      squareWithHole(cx + (rand() - 0.5) * scale, cy + (rand() - 0.5) * scale, scale * 0.8, scale * 0.15),
+    ];
+    addSplitCase(`split_rand_holes_${rname}_${i}`, subjects, clips);
   }
 }
 

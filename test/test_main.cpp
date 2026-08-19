@@ -126,18 +126,53 @@ void unitTests() {
     }
     check(threw, "invalid input throws");
   }
+  // splitEach: touched subject gets clipped, inside collects intersections
+  {
+    auto res = polyclip::splitEach({squarePoly(0, 0, 2)}, {squarePoly(1, 1, 2)}, opts);
+    check(res.size() == 1, "splitEach: one result");
+    check(res[0].touched && res[0].failures == 0, "splitEach: touched, no failures");
+    check(std::fabs(multiArea(res[0].outside) - 3.0) < 1e-9, "splitEach: outside area 3");
+    check(std::fabs(multiArea(res[0].inside) - 1.0) < 1e-9, "splitEach: inside area 1");
+  }
+  // splitEach: untouched subject comes back verbatim
+  {
+    auto res = polyclip::splitEach({squarePoly(0, 0, 1)}, {squarePoly(5, 5, 1)}, opts);
+    check(res.size() == 1 && !res[0].touched, "splitEach: untouched");
+    check(res[0].outside.size() == 1 && res[0].outside[0].coords == squarePoly(0, 0, 1).coords,
+          "splitEach: untouched outside is verbatim input");
+    check(res[0].inside.empty(), "splitEach: untouched inside empty");
+  }
+  // splitEach: fully consumed subject, degenerate entries ignored
+  {
+    PackedPolygon degenerate;
+    auto res = polyclip::splitEach({squarePoly(1, 1, 1), degenerate}, {degenerate, squarePoly(0, 0, 3)}, opts);
+    check(res.size() == 2, "splitEach: two results");
+    check(res[0].touched && res[0].outside.empty(), "splitEach: consumed subject empty outside");
+    check(std::fabs(multiArea(res[0].inside) - 1.0) < 1e-9, "splitEach: consumed subject inside area 1");
+    check(!res[1].touched && res[1].outside.empty() && res[1].inside.empty(),
+          "splitEach: degenerate subject empty result");
+  }
   std::printf("unit tests: %d checks, %d failures\n", checks, failures);
 }
 
 /* ---- fixture parsing & comparison ---- */
 
+struct ExpectedSplit {
+  bool touched = false;
+  int failures = 0;
+  PackedMultiPolygon outside;
+  PackedMultiPolygon inside;
+};
+
 struct Fixture {
   std::string name;
-  OpType op;
+  OpType op = OpType::Union;
+  bool isSplit = false;
   PackedMultiPolygon subject;
   std::vector<PackedMultiPolygon> clips;
   bool expectError = false;
   PackedMultiPolygon expected;
+  std::vector<ExpectedSplit> expectedSplit;
 };
 
 OpType parseOp(const std::string& s) {
@@ -183,7 +218,11 @@ std::vector<Fixture> readFixtures(const std::string& path) {
     in >> f.name;
     std::string opStr;
     in >> tag >> opStr; // OP <op>
-    f.op = parseOp(opStr);
+    if (opStr == "split_each") {
+      f.isSplit = true;
+    } else {
+      f.op = parseOp(opStr);
+    }
     int n;
     in >> tag >> n; // SUBJECT <n>
     f.subject = readMultiPoly(in, n);
@@ -193,9 +232,24 @@ std::vector<Fixture> readFixtures(const std::string& path) {
       in >> tag >> n; // CLIP <n>
       f.clips.push_back(readMultiPoly(in, n));
     }
-    in >> tag; // EXPECT_ERROR | EXPECT
+    in >> tag; // EXPECT_ERROR | EXPECT | EXPECT_SPLIT
     if (tag == "EXPECT_ERROR") {
       f.expectError = true;
+    } else if (tag == "EXPECT_SPLIT") {
+      int numSubjects;
+      in >> numSubjects;
+      for (int s = 0; s < numSubjects; s++) {
+        ExpectedSplit es;
+        int touched;
+        in >> tag >> touched >> es.failures; // SUBJ <t> <f>
+        if (tag != "SUBJ") throw std::runtime_error("expected SUBJ, got " + tag);
+        es.touched = touched != 0;
+        in >> tag >> n; // OUTSIDE <n>
+        es.outside = readMultiPoly(in, n);
+        in >> tag >> n; // INSIDE <n>
+        es.inside = readMultiPoly(in, n);
+        f.expectedSplit.push_back(std::move(es));
+      }
     } else {
       in >> n;
       f.expected = readMultiPoly(in, n);
@@ -264,6 +318,58 @@ int runFixtures(const std::string& path, bool robust) {
   std::vector<std::string> failedCases;
 
   for (const auto& f : fixtures) {
+    if (f.isSplit) {
+      std::vector<polyclip::SplitResult> actual;
+      bool threw = false;
+      std::string errMsg;
+      try {
+        actual = polyclip::splitEach(f.subject, f.clips.at(0), opts);
+      } catch (const std::exception& e) {
+        threw = true;
+        errMsg = e.what();
+      }
+      if (f.expectError) {
+        if (threw) passed++;
+        else failedCases.push_back(f.name + " (expected error, got result)");
+        continue;
+      }
+      if (threw) {
+        failedCases.push_back(f.name + " (unexpected error: " + errMsg + ")");
+        continue;
+      }
+      bool ok = actual.size() == f.expectedSplit.size();
+      bool allExact = true;
+      bool anyReordered = false;
+      for (size_t i = 0; ok && i < actual.size(); i++) {
+        const ExpectedSplit& exp = f.expectedSplit[i];
+        if (actual[i].touched != exp.touched || actual[i].failures != exp.failures) {
+          ok = false;
+          break;
+        }
+        bool exact = false, reordered = false;
+        if (!resultsMatch(actual[i].outside, exp.outside, tol, &exact, &reordered)) {
+          ok = false;
+          break;
+        }
+        allExact = allExact && exact;
+        anyReordered = anyReordered || reordered;
+        if (!resultsMatch(actual[i].inside, exp.inside, tol, &exact, &reordered)) {
+          ok = false;
+          break;
+        }
+        allExact = allExact && exact;
+        anyReordered = anyReordered || reordered;
+      }
+      if (ok) {
+        passed++;
+        if (allExact) exactCount++;
+        if (anyReordered) reorderedCount++;
+      } else {
+        failedCases.push_back(f.name + " (split mismatch)");
+      }
+      continue;
+    }
+
     PackedMultiPolygon actual;
     bool threw = false;
     std::string errMsg;
@@ -331,7 +437,13 @@ int runBench(const std::string& path, int iters) {
   for (int it = 0; it < iters; it++) {
     for (const auto& f : fixtures) {
       if (f.expectError) continue;
-      sink += multiArea(polyclip::clip(f.op, f.subject, f.clips, opts));
+      if (f.isSplit) {
+        for (const auto& r : polyclip::splitEach(f.subject, f.clips.at(0), opts)) {
+          sink += multiArea(r.outside);
+        }
+      } else {
+        sink += multiArea(polyclip::clip(f.op, f.subject, f.clips, opts));
+      }
       ops++;
     }
   }

@@ -37,6 +37,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSArray<NSNumber *> *)clip:(double)op
                      geometry:(NSArray *)geometry;
+- (NSArray<NSNumber *> *)splitEach:(NSArray *)subjects
+                             clips:(NSArray *)clips;
 
 @end
 

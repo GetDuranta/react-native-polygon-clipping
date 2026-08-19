@@ -30,10 +30,17 @@ namespace facebook::react {
       return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, ArrayKind, "clip", @selector(clip:geometry:), args, count);
     }
 
+    static facebook::jsi::Value __hostFunction_NativePolygonClippingSpecJSI_splitEach(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+      return static_cast<ObjCTurboModule&>(turboModule).invokeObjCMethod(rt, ArrayKind, "splitEach", @selector(splitEach:clips:), args, count);
+    }
+
   NativePolygonClippingSpecJSI::NativePolygonClippingSpecJSI(const ObjCTurboModule::InitParams &params)
     : ObjCTurboModule(params) {
       
         methodMap_["clip"] = MethodMetadata {2, __hostFunction_NativePolygonClippingSpecJSI_clip};
+        
+        
+        methodMap_["splitEach"] = MethodMetadata {2, __hostFunction_NativePolygonClippingSpecJSI_splitEach};
         
   }
 } // namespace facebook::react

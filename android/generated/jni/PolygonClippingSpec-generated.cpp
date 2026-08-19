@@ -17,9 +17,15 @@ static facebook::jsi::Value __hostFunction_NativePolygonClippingSpecJSI_clip(fac
   return static_cast<JavaTurboModule &>(turboModule).invokeJavaMethod(rt, ArrayKind, "clip", "(DLcom/facebook/react/bridge/ReadableArray;)Lcom/facebook/react/bridge/WritableArray;", args, count, cachedMethodId);
 }
 
+static facebook::jsi::Value __hostFunction_NativePolygonClippingSpecJSI_splitEach(facebook::jsi::Runtime& rt, TurboModule &turboModule, const facebook::jsi::Value* args, size_t count) {
+  static jmethodID cachedMethodId = nullptr;
+  return static_cast<JavaTurboModule &>(turboModule).invokeJavaMethod(rt, ArrayKind, "splitEach", "(Lcom/facebook/react/bridge/ReadableArray;Lcom/facebook/react/bridge/ReadableArray;)Lcom/facebook/react/bridge/WritableArray;", args, count, cachedMethodId);
+}
+
 NativePolygonClippingSpecJSI::NativePolygonClippingSpecJSI(const JavaTurboModule::InitParams &params)
   : JavaTurboModule(params) {
   methodMap_["clip"] = MethodMetadata {2, __hostFunction_NativePolygonClippingSpecJSI_clip};
+  methodMap_["splitEach"] = MethodMetadata {2, __hostFunction_NativePolygonClippingSpecJSI_splitEach};
 }
 
 std::shared_ptr<TurboModule> PolygonClippingSpec_ModuleProvider(const std::string &moduleName, const JavaTurboModule::InitParams &params) {

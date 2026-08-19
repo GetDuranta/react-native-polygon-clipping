@@ -1531,4 +1531,45 @@ PackedMultiPolygon clip(OpType type, const PackedMultiPolygon& subject,
   return composeResult(op, ringsOut);
 }
 
+std::vector<SplitResult> splitEach(const PackedMultiPolygon& subjects, const PackedMultiPolygon& clips,
+                                   const ClipOptions& options) {
+  std::vector<const PackedPolygon*> validClips;
+  validClips.reserve(clips.size());
+  for (const PackedPolygon& c : clips) {
+    if (!c.ringLengths.empty()) validClips.push_back(&c);
+  }
+
+  std::vector<SplitResult> results;
+  results.reserve(subjects.size());
+  for (const PackedPolygon& subject : subjects) {
+    SplitResult r;
+    if (subject.ringLengths.empty()) {
+      results.push_back(std::move(r));
+      continue;
+    }
+    PackedMultiPolygon current{subject};
+    for (const PackedPolygon* c : validClips) {
+      PackedMultiPolygon inter = clip(OpType::Intersection, current, {{*c}}, options);
+      if (inter.empty()) continue;
+      r.inside.insert(r.inside.end(), inter.begin(), inter.end());
+      PackedMultiPolygon diff;
+      try {
+        diff = clip(OpType::Difference, current, {std::move(inter)}, options);
+      } catch (const std::exception&) {
+        r.failures++;
+        continue;
+      }
+      r.touched = true;
+      if (diff.empty()) {
+        current.clear();
+        break;
+      }
+      current = std::move(diff);
+    }
+    r.outside = std::move(current);
+    results.push_back(std::move(r));
+  }
+  return results;
+}
+
 } // namespace polyclip

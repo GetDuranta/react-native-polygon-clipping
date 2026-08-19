@@ -53,7 +53,20 @@ while (pos < tokens.length) {
   }
   const expectTag = next();
   let expectError = expectTag === "EXPECT_ERROR";
-  if (!expectError) readMultiPoly(nextNum());
+  if (expectTag === "EXPECT_SPLIT") {
+    const numSubjects = nextNum();
+    for (let s = 0; s < numSubjects; s++) {
+      next(); // SUBJ
+      nextNum(); // touched
+      nextNum(); // failures
+      next(); // OUTSIDE
+      readMultiPoly(nextNum());
+      next(); // INSIDE
+      readMultiPoly(nextNum());
+    }
+  } else if (!expectError) {
+    readMultiPoly(nextNum());
+  }
   if (next() !== "END") throw new Error("expected END");
   if (!expectError) cases.push({ name, op, subject, clips });
 }
@@ -74,7 +87,39 @@ function packedToNested(mp) {
   });
 }
 
+function splitEachJsRef(subjects, clips) {
+  const validClips = clips.filter((c) => c.ringLengths.length > 0);
+  const results = [];
+  for (const subject of subjects) {
+    const r = { outside: [], inside: [], touched: false, failures: 0 };
+    results.push(r);
+    if (subject.ringLengths.length === 0) continue;
+    let current = [subject];
+    for (const clip of validClips) {
+      const inter = intersectionPacked(current, [clip]);
+      if (inter.length === 0) continue;
+      r.inside.push(...inter);
+      let diff;
+      try {
+        diff = differencePacked(current, inter);
+      } catch {
+        r.failures++;
+        continue;
+      }
+      r.touched = true;
+      if (diff.length === 0) {
+        current = [];
+        break;
+      }
+      current = diff;
+    }
+    r.outside = current;
+  }
+  return results;
+}
+
 function run(c) {
+  if (c.op === "split_each") return splitEachJsRef(c.subject, c.clips[0]);
   if (c.op === "intersection") return intersectionPacked(c.subject, ...c.clips);
   if (c.op === "difference") return differencePacked(c.subject, ...c.clips);
   if (c.op === "union") return unionPacked(c.subject, ...c.clips);

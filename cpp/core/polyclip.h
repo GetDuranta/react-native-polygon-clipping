@@ -51,4 +51,30 @@ PackedMultiPolygon clip(OpType op, const PackedMultiPolygon& subject,
                         const std::vector<PackedMultiPolygon>& clips,
                         const ClipOptions& options = {});
 
+/* Result of splitting one subject polygon against a set of clip polygons. */
+struct SplitResult {
+  /* Pieces of the subject that lie outside all clips. When touched is
+   * false this is a verbatim copy of the input subject. */
+  PackedMultiPolygon outside;
+  /* Intersection pieces carved out by the clips, in clip order. */
+  PackedMultiPolygon inside;
+  /* Whether any clip step actually modified the subject. */
+  bool touched = false;
+  /* Number of clip steps skipped because the difference operation hit a
+   * topology error (the intersection pieces of a skipped step remain in
+   * `inside`). */
+  int32_t failures = 0;
+};
+
+/* Bulk operation: splits each subject polygon independently against the
+ * clip polygons, entirely in native code. Per subject, iterates the clips
+ * in order: computes the intersection with the current remainder; if
+ * non-empty, appends it to `inside` and subtracts it from the remainder.
+ * Difference failures are counted and skipped; intersection failures
+ * propagate (matching the historical JS loop this replaces). Subjects with
+ * no rings yield an empty untouched result; clips with no rings are
+ * ignored. */
+std::vector<SplitResult> splitEach(const PackedMultiPolygon& subjects, const PackedMultiPolygon& clips,
+                                   const ClipOptions& options = {});
+
 } // namespace polyclip

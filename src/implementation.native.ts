@@ -6,6 +6,8 @@
 import type { Spec } from "./NativePolygonClipping";
 import type { Geom, MultiPolygon, PackedCoords, Polygon, Ring } from "./types";
 import * as js from "./polygon-clipping";
+import { splitEachJs } from "./split-each";
+import type { DifferenceEachResult, SplitResult } from "./split-each";
 
 const OP_UNION = 0;
 const OP_INTERSECTION = 1;
@@ -34,48 +36,47 @@ export function isNativePolygonClippingAvailable(): boolean {
 
 // ---- flat geometry encoding (see NativePolygonClipping.ts) ----
 
-function encodePacked(multiPolys: PackedCoords[][]): number[] {
-  let size = 1;
-  for (const mp of multiPolys) {
-    size += 1;
-    for (const poly of mp) {
-      size += 1 + poly.ringLengths.length + poly.packedCoordinates.length;
-    }
-  }
-  const out = new Array<number>(size);
-  let w = 0;
-  out[w++] = multiPolys.length;
-  for (const mp of multiPolys) {
-    out[w++] = mp.length;
-    for (const poly of mp) {
-      const { ringLengths, packedCoordinates } = poly;
-      out[w++] = ringLengths.length;
-      let coordIndex = 0;
-      for (let r = 0; r < ringLengths.length; r++) {
-        const pairs = ringLengths[r];
-        out[w++] = pairs;
-        for (let i = 0; i < pairs * 2; i++) {
-          out[w++] = packedCoordinates[coordIndex++];
-        }
+function appendMultiPoly(out: number[], mp: PackedCoords[]): void {
+  out.push(mp.length);
+  for (const poly of mp) {
+    const { ringLengths, packedCoordinates } = poly;
+    out.push(ringLengths.length);
+    let coordIndex = 0;
+    for (let r = 0; r < ringLengths.length; r++) {
+      const pairs = ringLengths[r];
+      out.push(pairs);
+      for (let i = 0; i < pairs * 2; i++) {
+        out.push(packedCoordinates[coordIndex++]);
       }
     }
   }
+}
+
+function encodeGeometry(multiPolys: PackedCoords[][]): number[] {
+  const out: number[] = [multiPolys.length];
+  for (const mp of multiPolys) appendMultiPoly(out, mp);
   return out;
 }
 
-function decodePacked(data: number[]): PackedCoords[] {
+function encodeMultiPoly(mp: PackedCoords[]): number[] {
+  const out: number[] = [];
+  appendMultiPoly(out, mp);
+  return out;
+}
+
+/* Decodes one multipolygon starting at `cursor.pos`, advancing the cursor. */
+function decodeMultiPoly(data: number[], cursor: { pos: number }): PackedCoords[] {
   const result: PackedCoords[] = [];
-  let r = 0;
-  const numPolys = data[r++];
+  const numPolys = data[cursor.pos++];
   for (let p = 0; p < numPolys; p++) {
-    const numRings = data[r++];
+    const numRings = data[cursor.pos++];
     const ringLengths: number[] = [];
     const packedCoordinates: number[] = [];
     for (let ring = 0; ring < numRings; ring++) {
-      const pairs = data[r++];
+      const pairs = data[cursor.pos++];
       ringLengths.push(pairs);
       for (let i = 0; i < pairs * 2; i++) {
-        packedCoordinates.push(data[r++]);
+        packedCoordinates.push(data[cursor.pos++]);
       }
     }
     result.push({ ringLengths, packedCoordinates });
@@ -84,7 +85,8 @@ function decodePacked(data: number[]): PackedCoords[] {
 }
 
 function clipPacked(module: Spec, op: number, subject: PackedCoords[], clips: PackedCoords[][]): PackedCoords[] {
-  return decodePacked(module.clip(op, encodePacked([subject, ...clips])));
+  const data = module.clip(op, encodeGeometry([subject, ...clips]));
+  return decodeMultiPoly(data, { pos: 0 });
 }
 
 // ---- packed API ----
@@ -111,6 +113,33 @@ export function differencePacked(subject: PackedCoords[], ...clips: PackedCoords
   const module = native();
   if (module === null) return js.differencePacked(subject, ...clips);
   return clipPacked(module, OP_DIFFERENCE, subject, clips);
+}
+
+// ---- bulk API ----
+
+export function splitEachPacked(subjects: PackedCoords[], clips: PackedCoords[]): SplitResult[] {
+  const module = native();
+  if (module === null) return splitEachJs(subjects, clips);
+  const data = module.splitEach(encodeMultiPoly(subjects), encodeMultiPoly(clips));
+  const cursor = { pos: 0 };
+  const numSubjects = data[cursor.pos++];
+  const results: SplitResult[] = [];
+  for (let i = 0; i < numSubjects; i++) {
+    const touched = data[cursor.pos++] !== 0;
+    const failures = data[cursor.pos++];
+    const outside = decodeMultiPoly(data, cursor);
+    const inside = decodeMultiPoly(data, cursor);
+    results.push({ outside, inside, touched, failures });
+  }
+  return results;
+}
+
+export function differenceEachPacked(subjects: PackedCoords[], clips: PackedCoords[]): DifferenceEachResult[] {
+  return splitEachPacked(subjects, clips).map(({ outside, touched, failures }) => ({
+    outside,
+    touched,
+    failures,
+  }));
 }
 
 // ---- nested-geometry API ----

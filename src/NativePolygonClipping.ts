@@ -21,6 +21,20 @@ export interface Spec extends TurboModule {
    * polygon-clipping library.
    */
   readonly clip: (op: number, geometry: ReadonlyArray<number>) => number[];
+
+  /**
+   * Bulk operation: splits each subject polygon independently against the
+   * clip polygons in one native call. `subjects` and `clips` are each a
+   * single multipolygon encoded as `multiPoly` above.
+   *
+   * The return value encodes, per subject polygon:
+   *
+   *   result       := numSubjects subjectResult*
+   *   subjectResult:= touched(0|1) failures multiPoly(outside) multiPoly(inside)
+   *
+   * See the polyclip::splitEach C++ doc for the exact semantics.
+   */
+  readonly splitEach: (subjects: ReadonlyArray<number>, clips: ReadonlyArray<number>) => number[];
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>("PolygonClipping");
