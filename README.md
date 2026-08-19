@@ -2,7 +2,11 @@
 
 Fast boolean operations on polygons — union, intersection, difference, xor —
 for React Native, implemented as a **pure C++ Turbo Module** (no Java/Kotlin,
-no Swift/ObjC wrappers around the algorithm, synchronous JSI calls).
+no Swift/ObjC wrappers around the algorithm, synchronous JSI calls), with a
+**TypeScript fallback** that runs the same algorithm wherever the native
+module isn't available: web bundles, Node, Jest, the old architecture. The
+package can therefore be used as the single polygon-clipping dependency of a
+codebase that targets both React Native and the web.
 
 The clipping core is a line-faithful C++ translation of the
 [Martinez-Rueda-Feito](https://doi.org/10.1016/j.advengsoft.2013.04.004)
@@ -27,9 +31,11 @@ interpreted, expect one to two orders of magnitude.
 
 ## Requirements
 
-- React Native **>= 0.76** with the New Architecture enabled (pure C++
-  Turbo Module autolinking). Works with Expo SDK 52+ (expo-modules-autolinking
-  supports pure C++ dependencies).
+- For the native module: React Native **>= 0.76** with the New Architecture
+  enabled (pure C++ Turbo Module autolinking). Works with Expo SDK 52+
+  (expo-modules-autolinking supports pure C++ dependencies).
+- Everywhere else (web, Node >= 18, Jest) the TypeScript implementation is
+  used automatically; no React Native required in that dependency graph.
 
 ## Installation
 
@@ -85,15 +91,18 @@ Notes:
   `Error` with the same messages as `polygon-clipping` (e.g.
   `"Unable to complete output ring…"`), so existing error handling keeps
   working.
-- `isNativePolygonClippingAvailable()` reports whether the native module is
-  present (false on web / in Jest without a native mock).
+- `isNativePolygonClippingAvailable()` reports which implementation is in
+  use (false means the TypeScript fallback).
 
 ## Architecture
 
 ```
+src/index.ts                   public API
+src/implementation.ts          web/Node entry: TypeScript engine
+src/implementation.native.ts   React Native entry: Turbo Module, falling
+                               back to the TypeScript engine when absent
+src/polygon-clipping.ts        the TypeScript engine (reference for the C++)
 src/NativePolygonClipping.ts   Turbo Module spec (codegen input)
-src/index.ts                   public API; encodes geometry into one flat
-                               double array per call and decodes the result
 cpp/PolygonClippingImpl.*      the Turbo Module (decode → clip → encode)
 cpp/core/polyclip.*            the clipping algorithm (RN-independent)
 cpp/core/orient2d.*            robust orientation predicate
@@ -101,6 +110,11 @@ android/CMakeLists.txt         builds the C++ into the app (autolinked)
 android/generated, ios/generated  shipped codegen artifacts
 ios/OnLoad.mm                  registers the module on iOS
 ```
+
+Platform selection uses the standard `.native.ts` convention: Metro (and
+jest-expo) resolve `implementation.native.ts`; web bundlers and Node resolve
+`implementation.ts`, whose import graph never touches `react-native`.
+Geometry crosses the JSI boundary as a single flat double array per call.
 
 The core (`cpp/core`) has no React Native dependencies and builds with any
 C++17 compiler; the algorithm requires **FP contraction disabled**
@@ -117,9 +131,10 @@ with the epsilon-snapped geometry on chained operations and cause
 ## Testing
 
 `test/run-tests.sh` builds and runs host-side tests: built-in unit tests
-plus a differential harness that replays fixtures generated from the
-reference TypeScript implementation (`test/gen-fixtures.mjs`, requires
-Node >= 23.6 for TypeScript type stripping) and requires bit-exact output.
+plus a differential harness that replays fixtures generated from the bundled
+TypeScript implementation (`test/gen-fixtures.mjs`, requires `npm install`
+and Node >= 23.6 for TypeScript type stripping) and requires bit-exact
+output from the C++ port.
 `test/bench.mjs` and `polyclip_test fixtures.txt bench` run the same corpus
 through both implementations for timing.
 

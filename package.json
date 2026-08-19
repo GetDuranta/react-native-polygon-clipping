@@ -1,7 +1,7 @@
 {
   "name": "@duranta-public/react-native-polygon-clipping",
-  "version": "0.1.0",
-  "description": "Fast polygon clipping (union, intersection, difference, xor) for React Native as a pure C++ Turbo Module",
+  "version": "0.2.0",
+  "description": "Fast polygon clipping (union, intersection, difference, xor) for React Native and web: pure C++ Turbo Module with a TypeScript fallback",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
   "types": "lib/typescript/src/index.d.ts",
@@ -50,7 +50,7 @@
   "devDependencies": {
     "@react-native-community/cli": "^20.0.0",
     "@types/react": "^19.1.0",
-    "react": "19.2.0",
+    "react": "19.2.3",
     "react-native": "0.86.2",
     "react-native-builder-bob": "^0.40.13",
     "typescript": "^5.9.2"
@@ -86,5 +86,9 @@
       ],
       "codegen"
     ]
+  },
+  "dependencies": {
+    "robust-predicates": "^3.0.2",
+    "splaytree": "^3.1.2"
   }
 }

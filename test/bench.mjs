@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 
 const tsPath =
   process.argv[2] ??
-  "/Users/cyberax/duranta/app/frontend/packages/geo-utils/polygon-clipping.ts";
+  new URL("../src/polygon-clipping.ts", import.meta.url).pathname;
 const fixturesPath = process.argv[3] ?? new URL("./fixtures.txt", import.meta.url).pathname;
 const iters = Number(process.argv[4] ?? 20);
 

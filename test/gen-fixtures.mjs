@@ -12,7 +12,7 @@
 
 const tsPath =
   process.argv[2] ??
-  "/Users/cyberax/duranta/app/frontend/packages/geo-utils/polygon-clipping.ts";
+  new URL("../src/polygon-clipping.ts", import.meta.url).pathname;
 const outPath = process.argv[3] ?? new URL("./fixtures.txt", import.meta.url).pathname;
 
 const { intersectionPacked, differencePacked, unionPacked, xor } = await import(tsPath);
