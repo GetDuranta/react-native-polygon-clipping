@@ -1,0 +1,12 @@
+# build outputs
+lib/
+node_modules/
+test/polyclip_test
+*.o
+
+# platform build dirs
+android/build/
+ios/build/
+
+# OS
+.DS_Store

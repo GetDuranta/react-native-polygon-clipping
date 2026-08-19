@@ -1,0 +1,90 @@
+{
+  "name": "@duranta/react-native-polygon-clipping",
+  "version": "0.1.0",
+  "description": "Fast polygon clipping (union, intersection, difference, xor) for React Native as a pure C++ Turbo Module",
+  "main": "lib/commonjs/index.js",
+  "module": "lib/module/index.js",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "files": [
+    "src",
+    "lib",
+    "cpp",
+    "android",
+    "ios",
+    "*.podspec",
+    "react-native.config.js",
+    "README.md",
+    "LICENSE",
+    "!**/.*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "codegen": "react-native codegen",
+    "test": "test/run-tests.sh",
+    "prepare": "bob build"
+  },
+  "keywords": [
+    "react-native",
+    "turbo-module",
+    "polygon",
+    "clipping",
+    "geometry",
+    "martinez",
+    "boolean-operations",
+    "union",
+    "intersection",
+    "difference"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getduranta/react-native-polygon-clipping.git"
+  },
+  "author": "Duranta <alex@getduranta.com>",
+  "license": "BSD-1-Clause",
+  "homepage": "https://github.com/getduranta/react-native-polygon-clipping#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^20.0.0",
+    "@types/react": "^19.1.0",
+    "react": "19.2.0",
+    "react-native": "0.86.2",
+    "react-native-builder-bob": "^0.40.13",
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": ">=0.76.0"
+  },
+  "codegenConfig": {
+    "name": "PolygonClippingSpec",
+    "type": "modules",
+    "jsSrcsDir": "src",
+    "outputDir": {
+      "ios": "ios/generated",
+      "android": "android/generated"
+    },
+    "android": {
+      "javaPackageName": "com.duranta.polygonclipping"
+    },
+    "includesGeneratedCode": true
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ],
+      "codegen"
+    ]
+  }
+}
